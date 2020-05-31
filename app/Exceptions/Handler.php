@@ -3,12 +3,16 @@
 namespace App\Exceptions;
 
 use Throwable;
+use App\Custom\ModelNotFound\CustomModelNotFound;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
-use App\Custom\ModelNotFound\CustomModelNotFoundExceptionContract;
+use App\Custom\CustomModelNotFoundResponse\Traits\CustomModelNotFoundResponse;
+
 
 class Handler extends ExceptionHandler
 {
+    use CustomModelNotFoundResponse;
+
     /**
      * A list of the exception types that are not reported.
      *
@@ -55,20 +59,10 @@ class Handler extends ExceptionHandler
         // Foi necessário para usar as views de erros publicadas do pakage laravel com `php artisan vendor:publish --tag=laravel-errors`
         $this->registerErrorViewPaths();
         
-        if($exception instanceof ModelNotFoundException && $response = $this->handleModelNotFoundException($request, $exception)) return $response;
+        if($exception instanceof ModelNotFoundException && $response = $this->handleModelNotFoundException($request, $exception)) {
+            return $response;
+        }
 
         return parent::render($request, $exception);
-    }
-
-    private function handleModelNotFoundException($request, ModelNotFoundException $exception) {
-        $model = app($exception->getModel());
-
-        if($model instanceof CustomModelNotFoundExceptionContract) {
-            $response = $model->getCustomModelNotFound($request, $exception);
-
-            return $request->wantsJson() ? 
-                parent::render($request, new ModelNotFoundException($response->getMessage(), $exception->getCode(), $exception)) : 
-                response($response->getView());
-        }
     }
 }

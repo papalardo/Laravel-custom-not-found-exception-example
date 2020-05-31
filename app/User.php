@@ -2,14 +2,19 @@
 
 namespace App;
 
+use Illuminate\Support\Facades\View;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Redirect;
+use Symfony\Component\Console\Input\Input;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Custom\ModelNotFound\CustomModelNotFound;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use App\Custom\ModelNotFound\CustomModelNotFoundExceptionContract;
+use App\Custom\CustomModelNotFoundResponse\Response\ModelNotFoundResponse;
+use App\Custom\CustomModelNotFoundResponse\Contracts\ModelNotFoundResponseContract;
+use App\Custom\CustomModelNotFoundResponse\Contracts\HasCustomModelNotFoundResponse;
 
-class User extends Authenticatable implements CustomModelNotFoundExceptionContract
+class User extends Authenticatable implements HasCustomModelNotFoundResponse
 {
     use Notifiable;
 
@@ -40,16 +45,15 @@ class User extends Authenticatable implements CustomModelNotFoundExceptionContra
         'email_verified_at' => 'datetime',
     ];
 
-    public function getCustomModelNotFound($request, ModelNotFoundException $exception) : CustomModelNotFound
+    public function getCustomModelNotFoundResponse($request, $exception) : ModelNotFoundResponseContract
     {
-        $forgetIds = implode(',', $exception->getIds());
+        $response = new ModelNotFoundResponse($request, $exception);
 
-        return (new CustomModelNotFound)
-            ->setMessage('User not found')
-            ->setView('user_not_found')
-            ->setViewData(['ids' => $forgetIds]);
+        return $response
+                ->setMessage("User {$response->getStringIds()} not found")
+                ->setView('user_not_found');
         
         // OR
-        // return new CustomModelNotFound;
+        // return $response;
     }
 }
